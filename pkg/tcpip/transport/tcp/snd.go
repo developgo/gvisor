@@ -812,6 +812,10 @@ func (s *sender) maybeSendSegment(seg *segment, limit int, end seqnum.Value) (se
 				// Consume the segment that we just merged in.
 				s.writeList.Remove(seg.Next())
 			}
+
+			if available > s.maxPayloadSize {
+				available = s.maxPayloadSize
+			}
 			if !nextTooBig && seg.data.Size() < available {
 				// Segment is not full.
 				if s.outstanding > 0 && s.ep.ops.GetDelayOption() {

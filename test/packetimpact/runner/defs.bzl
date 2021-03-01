@@ -277,6 +277,9 @@ ALL_TESTS = [
     PacketimpactTestInfo(
         name = "tcp_info",
     ),
+    PacketimpactTestInfo(
+        name = "tcp_nagle",
+    ),
 ]
 
 def validate_all_tests():
