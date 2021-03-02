@@ -503,3 +503,14 @@ func (s *Stack) Forwarding(protocol tcpip.NetworkProtocolNumber) bool {
 func (s *Stack) SetForwarding(tcpip.NetworkProtocolNumber, bool) error {
 	return syserror.EACCES
 }
+
+// PortRange implements inet.Stack.PortRange.
+func (s *Stack) PortRange() (uint16, uint16) {
+	// Use the default Linux values.
+	return 32768, 60999
+}
+
+// SetPortRange implements inet.Stack.SetPortRange.
+func (s *Stack) SetPortRange(start uint16, end uint16) error {
+	return syserror.EACCES
+}
