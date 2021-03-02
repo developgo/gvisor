@@ -201,6 +201,8 @@ ALL_TESTS = [
     ),
     PacketimpactTestInfo(
         name = "tcp_outside_the_window",
+        # TODO(b/181625316): Fix netstack then remove the line below.
+        expect_netstack_failure = True,
     ),
     PacketimpactTestInfo(
         name = "tcp_noaccept_close_rst",

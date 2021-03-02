@@ -108,3 +108,68 @@ func TestTCPOutsideTheWindow(t *testing.T) {
 		})
 	}
 }
+
+// TestAckOTWSeqInClosing tests that the DUT should send an ACK with
+// the right ACK number when receiving a packet with OTW Seq number
+// in CLOSING state. https://tools.ietf.org/html/rfc793#page-69
+func TestAckOTWSeqInClosing(t *testing.T) {
+	for seqNumOffset := seqnum.Size(0); seqNumOffset < 3; seqNumOffset++ {
+		for _, tt := range []struct {
+			description string
+			flags       uint8
+			payloads    testbench.Layers
+		}{
+			{"SYN", header.TCPFlagSyn, nil},
+			{"SYNACK", header.TCPFlagSyn | header.TCPFlagAck, nil},
+			{"ACK", header.TCPFlagAck, nil},
+			{"FINACK", header.TCPFlagFin | header.TCPFlagAck, nil},
+			{"Data", header.TCPFlagAck, []testbench.Layer{&testbench.Payload{Bytes: []byte("abc123")}}},
+		} {
+			t.Run(fmt.Sprintf("%s%d", tt.description, seqNumOffset), func(t *testing.T) {
+				dut := testbench.NewDUT(t)
+				listenFD, remotePort := dut.CreateListener(t, unix.SOCK_STREAM, unix.IPPROTO_TCP, 1)
+				defer dut.Close(t, listenFD)
+				conn := dut.Net.NewTCPIPv4(t, testbench.TCP{DstPort: &remotePort}, testbench.TCP{SrcPort: &remotePort})
+				defer conn.Close(t)
+				conn.Connect(t)
+				acceptFD, _ := dut.Accept(t, listenFD)
+				defer dut.Close(t, acceptFD)
+
+				dut.Shutdown(t, acceptFD, unix.SHUT_WR)
+
+				timeout := 3 * time.Second
+
+				if _, err := conn.Expect(t, testbench.TCP{Flags: testbench.Uint8(header.TCPFlagFin | header.TCPFlagAck)}, timeout); err != nil {
+					t.Fatalf("expected FINACK from DUT, but got none: %s", err)
+				}
+
+				seqNumForTheirFIN := testbench.Uint32(*conn.SynAck(t).SeqNum + 1)
+
+				// Do not ack the FIN from DUT so that the TCP state on DUT is CLOSING instead of CLOSED.
+				conn.Send(t, testbench.TCP{AckNum: seqNumForTheirFIN, Flags: testbench.Uint8(header.TCPFlagFin | header.TCPFlagAck)})
+
+				if _, err := conn.Expect(t, testbench.TCP{Flags: testbench.Uint8(header.TCPFlagAck)}, timeout); err != nil {
+					t.Errorf("expected an ACK to our FIN, but got none: %s", err)
+				}
+
+				if _, err := conn.Expect(t, testbench.TCP{
+					SeqNum: seqNumForTheirFIN,
+					Flags:  testbench.Uint8(header.TCPFlagFin | header.TCPFlagAck),
+				}, timeout); err != nil {
+					t.Errorf("expected retransmission of FIN from the DUT: %s", err)
+				}
+
+				windowSize := seqnum.Size(*conn.SynAck(t).WindowSize) + seqNumOffset
+				conn.SendFrameStateless(t, conn.CreateFrame(t, testbench.Layers{&testbench.TCP{
+					SeqNum: testbench.Uint32(uint32(conn.LocalSeqNum(t).Add(windowSize))),
+					AckNum: seqNumForTheirFIN,
+					Flags:  testbench.Uint8(tt.flags),
+				}}, tt.payloads...))
+
+				if _, err := conn.Expect(t, testbench.TCP{Flags: testbench.Uint8(header.TCPFlagAck)}, timeout); err != nil {
+					t.Errorf("expected an ACK but got none: %s", err)
+				}
+			})
+		}
+	}
+}
