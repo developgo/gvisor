@@ -53,7 +53,7 @@ power management:
 			mitigateData:  "",
 			mitigateError: fmt.Errorf(`mitigate operation failed: no cpus found for: ""`),
 			reverseData:   "",
-			reverseError:  fmt.Errorf(`reverse operation failed: mismatch regex from %s: ""`, allPossibleCPUs),
+			reverseError:  fmt.Errorf(`reverse operation failed: mismatch regex from %s: ""`, AllPossibleCPUs),
 		},
 		{
 			name: "Partial",
@@ -66,28 +66,32 @@ physical id     : 0
 core id         : 0
 cpu cores       : 1
 bugs            : sysret_ss_attrs spectre_v1 spectre_v2 spec_store_bypass
-power management:
+power management::84
 
 ` + partial,
 			mitigateError: fmt.Errorf(`mitigate operation failed: failed to match key "core id": %q`, partial),
 			reverseData:   "1-",
-			reverseError:  fmt.Errorf(`reverse operation failed: mismatch regex from %s: %q`, allPossibleCPUs, "1-"),
+			reverseError:  fmt.Errorf(`reverse operation failed: mismatch regex from %s: %q`, AllPossibleCPUs, "1-"),
 		},
 	} {
-		doExecuteTest(t, Mitigate{}, tc)
+		doExecuteTest(t, &Mitigate{
+			other: &mitigate{},
+		}, tc)
 	}
 }
 
 func TestExecuteSmoke(t *testing.T) {
-	smokeMitigate, err := ioutil.ReadFile(cpuInfo)
+	smokeMitigate, err := ioutil.ReadFile(CPUInfo)
 	if err != nil {
-		t.Fatalf("Failed to read %s: %v", cpuInfo, err)
+		t.Fatalf("Failed to read %s: %v", CPUInfo, err)
 	}
-	smokeReverse, err := ioutil.ReadFile(allPossibleCPUs)
+	smokeReverse, err := ioutil.ReadFile(AllPossibleCPUs)
 	if err != nil {
-		t.Fatalf("Failed to read %s: %v", allPossibleCPUs, err)
+		t.Fatalf("Failed to read %s: %v", AllPossibleCPUs, err)
 	}
-	doExecuteTest(t, Mitigate{}, executeTestCase{
+	doExecuteTest(t, &Mitigate{
+		other: &mitigate{},
+	}, executeTestCase{
 		name:         "SmokeTest",
 		mitigateData: string(smokeMitigate),
 		reverseData:  string(smokeReverse),
@@ -96,7 +100,7 @@ func TestExecuteSmoke(t *testing.T) {
 }
 
 // doExecuteTest runs Execute with the mitigate operation and reverse operation.
-func doExecuteTest(t *testing.T, m Mitigate, tc executeTestCase) {
+func doExecuteTest(t *testing.T, m *Mitigate, tc executeTestCase) {
 	t.Run("Mitigate"+tc.name, func(t *testing.T) {
 		m.dryRun = true
 		file, err := ioutil.TempFile("", "outfile.txt")
@@ -109,7 +113,7 @@ func doExecuteTest(t *testing.T, m Mitigate, tc executeTestCase) {
 			t.Fatalf("Failed to write to file: %v", err)
 		}
 
-		m.path = file.Name()
+		m.Path = file.Name()
 
 		got := m.Execute()
 		if err = checkErr(tc.mitigateError, got); err != nil {
@@ -118,7 +122,7 @@ func doExecuteTest(t *testing.T, m Mitigate, tc executeTestCase) {
 	})
 	t.Run("Reverse"+tc.name, func(t *testing.T) {
 		m.dryRun = true
-		m.reverse = true
+		m.Reverse = true
 
 		file, err := ioutil.TempFile("", "outfile.txt")
 		if err != nil {
@@ -130,7 +134,7 @@ func doExecuteTest(t *testing.T, m Mitigate, tc executeTestCase) {
 			t.Fatalf("Failed to write to file: %v", err)
 		}
 
-		m.path = file.Name()
+		m.Path = file.Name()
 		got := m.Execute()
 		if err = checkErr(tc.reverseError, got); err != nil {
 			t.Fatalf("Mitigate error mismatch: %v", err)

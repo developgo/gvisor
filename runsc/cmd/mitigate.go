@@ -25,7 +25,7 @@ import (
 
 // Mitigate implements subcommands.Command for the "mitigate" command.
 type Mitigate struct {
-	mitigate mitigate.Mitigate
+	mitigate *mitigate.Mitigate
 }
 
 // Name implements subcommands.command.name.
@@ -45,6 +45,9 @@ func (m *Mitigate) Usage() string {
 
 // SetFlags implements subcommands.Command.SetFlags.
 func (m *Mitigate) SetFlags(f *flag.FlagSet) {
+	if m.mitigate == nil {
+		m.mitigate = &mitigate.Mitigate{}
+	}
 	m.mitigate.SetFlags(f)
 }
 
@@ -53,6 +56,15 @@ func (m *Mitigate) Execute(_ context.Context, f *flag.FlagSet, args ...interface
 	if f.NArg() != 0 {
 		f.Usage()
 		return subcommands.ExitUsageError
+	}
+
+	if m.mitigate == nil {
+		m.mitigate = &mitigate.Mitigate{}
+	}
+
+	m.mitigate.Path = mitigate.CPUInfo
+	if m.mitigate.Reverse {
+		m.mitigate.Path = mitigate.AllPossibleCPUs
 	}
 
 	if err := m.mitigate.Execute(); err != nil {

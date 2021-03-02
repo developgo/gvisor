@@ -22,16 +22,16 @@ type mitigate struct {
 }
 
 // usage returns the usage string portion for the mitigate.
-func (m mitigate) usage() string { return "" }
+func (m *mitigate) usage() string { return "" }
 
 // setFlags sets additional flags for the Mitigate command.
-func (m mitigate) setFlags(f *flag.FlagSet) {}
+func (m *mitigate) setFlags(f *flag.FlagSet) {}
 
 // execute performs additional parts of Execute for Mitigate.
-func (m mitigate) execute(set cpuSet, dryrun bool) error {
+func (m *mitigate) execute(set cpuSet, dryrun bool) error {
 	return nil
 }
 
-func (m mitigate) vulnerable(other thread) bool {
+func (m *mitigate) vulnerable(other thread) bool {
 	return other.isVulnerable()
 }

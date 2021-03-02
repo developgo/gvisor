@@ -17,6 +17,7 @@ package mitigate
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -179,7 +180,7 @@ func getThreadsFromPossible(data []byte) ([]thread, error) {
 	possibleRegex := regexp.MustCompile(`(?m)^(\d+)(-(\d+))?$`)
 	matches := possibleRegex.FindStringSubmatch(string(data))
 	if len(matches) != 4 {
-		return nil, fmt.Errorf("mismatch regex from %s: %q", allPossibleCPUs, string(data))
+		return nil, fmt.Errorf("mismatch regex from %s: %q", AllPossibleCPUs, string(data))
 	}
 
 	// If matches[3] is empty, we only have one cpu entry.
@@ -300,6 +301,9 @@ Bugs: %s
 // enable turns on the CPU by writing 1 to /sys/devices/cpu/cpu{N}/online.
 func (t thread) enable() error {
 	cpuPath := fmt.Sprintf(cpuOnlineTemplate, t.processorNumber)
+	if _, err := os.Stat(cpuPath); os.IsNotExist(err) {
+		return nil
+	}
 	return ioutil.WriteFile(cpuPath, []byte{'1'}, 0644)
 }
 

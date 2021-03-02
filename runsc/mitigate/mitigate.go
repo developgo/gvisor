@@ -28,16 +28,18 @@ import (
 )
 
 const (
-	cpuInfo         = "/proc/cpuinfo"
-	allPossibleCPUs = "/sys/devices/system/cpu/possible"
+	// CPUInfo is the path used to parse CPU info.
+	CPUInfo = "/proc/cpuinfo"
+	// AllPossibleCPUs is the path used to enable CPUs.
+	AllPossibleCPUs = "/sys/devices/system/cpu/possible"
 )
 
 // Mitigate handles high level mitigate operations provided to runsc.
 type Mitigate struct {
-	dryRun  bool     // Run the command without changing the underlying system.
-	reverse bool     // Reverse mitigate by turning on all CPU cores.
-	other   mitigate // Struct holds extra mitigate logic.
-	path    string   // path to read for each operation (e.g. /proc/cpuinfo).
+	dryRun  bool      // Run the command without changing the underlying system.
+	Reverse bool      // Reverse mitigate by turning on all CPU cores.
+	other   *mitigate // Struct holds extra mitigate logic.
+	Path    string    // path to read for each operation (e.g. /proc/cpuinfo).
 }
 
 // Usage implments Usage for cmd.Mitigate.
@@ -52,39 +54,47 @@ The command can be reversed with --reverse, which reads the total CPUs from /sys
 }
 
 // SetFlags sets flags for the command Mitigate.
-func (m Mitigate) SetFlags(f *flag.FlagSet) {
+func (m *Mitigate) SetFlags(f *flag.FlagSet) {
 	f.BoolVar(&m.dryRun, "dryrun", false, "run the command without changing system")
-	f.BoolVar(&m.reverse, "reverse", false, "reverse mitigate by enabling all CPUs")
-	m.other.setFlags(f)
-	m.path = cpuInfo
-	if m.reverse {
-		m.path = allPossibleCPUs
+	f.BoolVar(&m.Reverse, "reverse", false, "reverse mitigate by enabling all CPUs")
+	if m.other == nil {
+		m.other = &mitigate{}
 	}
+	m.other.setFlags(f)
 }
 
 // Execute executes the Mitigate command.
-func (m Mitigate) Execute() error {
-	data, err := ioutil.ReadFile(m.path)
-	if err != nil {
-		return fmt.Errorf("failed to read %s: %v", m.path, err)
-	}
+func (m *Mitigate) Execute() error {
+	if m.Reverse {
+		data, err := ioutil.ReadFile(m.Path)
+		if err != nil {
+			return fmt.Errorf("failed to read %s: %v", m.Path, err)
+		}
 
-	if m.reverse {
-		err := m.doReverse(data)
+		err = m.doReverse(data)
 		if err != nil {
 			return fmt.Errorf("reverse operation failed: %v", err)
 		}
 		return nil
 	}
 
+	data, err := ioutil.ReadFile(m.Path)
+	if err != nil {
+		return fmt.Errorf("failed to read %s: %v", m.Path, err)
+	}
 	set, err := m.doMitigate(data)
 	if err != nil {
 		return fmt.Errorf("mitigate operation failed: %v", err)
 	}
+	if m.other == nil {
+		log.Infof("Made new mitigate")
+		m.other = &mitigate{}
+	}
+
 	return m.other.execute(set, m.dryRun)
 }
 
-func (m Mitigate) doMitigate(data []byte) (cpuSet, error) {
+func (m *Mitigate) doMitigate(data []byte) (cpuSet, error) {
 	set, err := newCPUSet(data, m.other.vulnerable)
 	if err != nil {
 		return nil, err
@@ -108,7 +118,7 @@ func (m Mitigate) doMitigate(data []byte) (cpuSet, error) {
 	return set, nil
 }
 
-func (m Mitigate) doReverse(data []byte) error {
+func (m *Mitigate) doReverse(data []byte) error {
 	set, err := newCPUSetFromPossible(data)
 	if err != nil {
 		return err

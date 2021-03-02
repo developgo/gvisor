@@ -93,7 +93,9 @@ physical id  : %d
 core id		: %d
 cpu cores	: %d
 bugs		: %s
+
 `
+
 	ret := ``
 	for i := 0; i < tc.physicalCores; i++ {
 		for j := 0; j < tc.cores; j++ {
@@ -108,7 +110,8 @@ bugs		: %s
 					i,                         /*physical id*/
 					j,                         /*core id*/
 					tc.cores*tc.physicalCores, /*cpu cores*/
-					tc.bugs /*bugs*/)
+					tc.bugs,                   /*bugs*/
+				)
 			}
 		}
 	}
@@ -590,7 +593,7 @@ func TestReverse(t *testing.T) {
 }
 
 func TestReverseSmoke(t *testing.T) {
-	data, err := ioutil.ReadFile(allPossibleCPUs)
+	data, err := ioutil.ReadFile(AllPossibleCPUs)
 	if err != nil {
 		t.Fatalf("Failed to read from possible: %v", err)
 	}
