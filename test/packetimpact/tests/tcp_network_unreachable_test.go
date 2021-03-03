@@ -17,7 +17,6 @@ package tcp_synsent_reset_test
 import (
 	"context"
 	"flag"
-	"syscall"
 	"testing"
 	"time"
 
@@ -46,7 +45,7 @@ func TestTCPSynSentUnreachable(t *testing.T) {
 	defer cancel()
 	sa := unix.SockaddrInet4{Port: int(port)}
 	copy(sa.Addr[:], dut.Net.LocalIPv4)
-	if _, err := dut.ConnectWithErrno(ctx, t, clientFD, &sa); err != syscall.Errno(unix.EINPROGRESS) {
+	if _, err := dut.ConnectWithErrno(ctx, t, clientFD, &sa); err != unix.Errno(unix.EINPROGRESS) {
 		t.Errorf("got connect() = %v, want EINPROGRESS", err)
 	}
 
@@ -101,7 +100,7 @@ func TestTCPSynSentUnreachable6(t *testing.T) {
 		ZoneId: dut.Net.RemoteDevID,
 	}
 	copy(sa.Addr[:], dut.Net.LocalIPv6)
-	if _, err := dut.ConnectWithErrno(ctx, t, clientFD, &sa); err != syscall.Errno(unix.EINPROGRESS) {
+	if _, err := dut.ConnectWithErrno(ctx, t, clientFD, &sa); err != unix.Errno(unix.EINPROGRESS) {
 		t.Errorf("got connect() = %v, want EINPROGRESS", err)
 	}
 
@@ -158,7 +157,7 @@ func getConnectError(t *testing.T, dut *testbench.DUT, fd int32) error {
 	// failure).
 	dut.PollOne(t, fd, unix.POLLOUT, 10*time.Second)
 	if errno := dut.GetSockOptInt(t, fd, unix.SOL_SOCKET, unix.SO_ERROR); errno != 0 {
-		return syscall.Errno(errno)
+		return unix.Errno(errno)
 	}
 	return nil
 }

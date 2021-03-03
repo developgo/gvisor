@@ -19,7 +19,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"net"
-	"syscall"
 	"testing"
 	"time"
 
@@ -196,7 +195,7 @@ func (dut *DUT) AcceptWithErrno(ctx context.Context, t *testing.T, sockfd int32)
 	if err != nil {
 		t.Fatalf("failed to call Accept: %s", err)
 	}
-	return resp.GetFd(), dut.protoToSockaddr(t, resp.GetAddr()), syscall.Errno(resp.GetErrno_())
+	return resp.GetFd(), dut.protoToSockaddr(t, resp.GetAddr()), unix.Errno(resp.GetErrno_())
 }
 
 // Bind calls bind on the DUT and causes a fatal test failure if it doesn't
@@ -225,7 +224,7 @@ func (dut *DUT) BindWithErrno(ctx context.Context, t *testing.T, fd int32, sa un
 	if err != nil {
 		t.Fatalf("failed to call Bind: %s", err)
 	}
-	return resp.GetRet(), syscall.Errno(resp.GetErrno_())
+	return resp.GetRet(), unix.Errno(resp.GetErrno_())
 }
 
 // Close calls close on the DUT and causes a fatal test failure if it doesn't
@@ -253,7 +252,7 @@ func (dut *DUT) CloseWithErrno(ctx context.Context, t *testing.T, fd int32) (int
 	if err != nil {
 		t.Fatalf("failed to call Close: %s", err)
 	}
-	return resp.GetRet(), syscall.Errno(resp.GetErrno_())
+	return resp.GetRet(), unix.Errno(resp.GetErrno_())
 }
 
 // Connect calls connect on the DUT and causes a fatal test failure if it
@@ -267,7 +266,7 @@ func (dut *DUT) Connect(t *testing.T, fd int32, sa unix.Sockaddr) {
 	ret, err := dut.ConnectWithErrno(ctx, t, fd, sa)
 	// Ignore 'operation in progress' error that can be returned when the socket
 	// is non-blocking.
-	if err != syscall.Errno(unix.EINPROGRESS) && ret != 0 {
+	if err != unix.Errno(unix.EINPROGRESS) && ret != 0 {
 		t.Fatalf("failed to connect socket: %s", err)
 	}
 }
@@ -284,7 +283,7 @@ func (dut *DUT) ConnectWithErrno(ctx context.Context, t *testing.T, fd int32, sa
 	if err != nil {
 		t.Fatalf("failed to call Connect: %s", err)
 	}
-	return resp.GetRet(), syscall.Errno(resp.GetErrno_())
+	return resp.GetRet(), unix.Errno(resp.GetErrno_())
 }
 
 // GetSockName calls getsockname on the DUT and causes a fatal test failure if
@@ -313,7 +312,7 @@ func (dut *DUT) GetSockNameWithErrno(ctx context.Context, t *testing.T, sockfd i
 	if err != nil {
 		t.Fatalf("failed to call Bind: %s", err)
 	}
-	return resp.GetRet(), dut.protoToSockaddr(t, resp.GetAddr()), syscall.Errno(resp.GetErrno_())
+	return resp.GetRet(), dut.protoToSockaddr(t, resp.GetAddr()), unix.Errno(resp.GetErrno_())
 }
 
 func (dut *DUT) getSockOpt(ctx context.Context, t *testing.T, sockfd, level, optname, optlen int32, typ pb.GetSockOptRequest_SockOptType) (int32, *pb.SockOptVal, error) {
@@ -334,7 +333,7 @@ func (dut *DUT) getSockOpt(ctx context.Context, t *testing.T, sockfd, level, opt
 	if optval == nil {
 		t.Fatalf("GetSockOpt response does not contain a value")
 	}
-	return resp.GetRet(), optval, syscall.Errno(resp.GetErrno_())
+	return resp.GetRet(), optval, unix.Errno(resp.GetErrno_())
 }
 
 // GetSockOpt calls getsockopt on the DUT and causes a fatal test failure if it
@@ -452,7 +451,7 @@ func (dut *DUT) ListenWithErrno(ctx context.Context, t *testing.T, sockfd, backl
 	if err != nil {
 		t.Fatalf("failed to call Listen: %s", err)
 	}
-	return resp.GetRet(), syscall.Errno(resp.GetErrno_())
+	return resp.GetRet(), unix.Errno(resp.GetErrno_())
 }
 
 // PollOne calls poll on the DUT and asserts that the expected event must be
@@ -519,7 +518,7 @@ func (dut *DUT) PollWithErrno(ctx context.Context, t *testing.T, pfds []unix.Pol
 			Revents: int16(protoPfd.GetEvents()),
 		})
 	}
-	return resp.GetRet(), result, syscall.Errno(resp.GetErrno_())
+	return resp.GetRet(), result, unix.Errno(resp.GetErrno_())
 }
 
 // Send calls send on the DUT and causes a fatal test failure if it doesn't
@@ -550,7 +549,7 @@ func (dut *DUT) SendWithErrno(ctx context.Context, t *testing.T, sockfd int32, b
 	if err != nil {
 		t.Fatalf("failed to call Send: %s", err)
 	}
-	return resp.GetRet(), syscall.Errno(resp.GetErrno_())
+	return resp.GetRet(), unix.Errno(resp.GetErrno_())
 }
 
 // SendTo calls sendto on the DUT and causes a fatal test failure if it doesn't
@@ -582,7 +581,7 @@ func (dut *DUT) SendToWithErrno(ctx context.Context, t *testing.T, sockfd int32,
 	if err != nil {
 		t.Fatalf("failed to call SendTo: %s", err)
 	}
-	return resp.GetRet(), syscall.Errno(resp.GetErrno_())
+	return resp.GetRet(), unix.Errno(resp.GetErrno_())
 }
 
 // SetNonBlocking will set O_NONBLOCK flag for fd if nonblocking
@@ -602,7 +601,7 @@ func (dut *DUT) SetNonBlocking(t *testing.T, fd int32, nonblocking bool) {
 		t.Fatalf("failed to call SetNonblocking: %s", err)
 	}
 	if resp.GetRet() == -1 {
-		t.Fatalf("fcntl(%d, %s) failed: %s", fd, resp.GetCmd(), syscall.Errno(resp.GetErrno_()))
+		t.Fatalf("fcntl(%d, %s) failed: %s", fd, resp.GetCmd(), unix.Errno(resp.GetErrno_()))
 	}
 }
 
@@ -619,7 +618,7 @@ func (dut *DUT) setSockOpt(ctx context.Context, t *testing.T, sockfd, level, opt
 	if err != nil {
 		t.Fatalf("failed to call SetSockOpt: %s", err)
 	}
-	return resp.GetRet(), syscall.Errno(resp.GetErrno_())
+	return resp.GetRet(), unix.Errno(resp.GetErrno_())
 }
 
 // SetSockOpt calls setsockopt on the DUT and causes a fatal test failure if it
@@ -720,7 +719,7 @@ func (dut *DUT) SocketWithErrno(t *testing.T, domain, typ, proto int32) (int32, 
 	if err != nil {
 		t.Fatalf("failed to call Socket: %s", err)
 	}
-	return resp.GetFd(), syscall.Errno(resp.GetErrno_())
+	return resp.GetFd(), unix.Errno(resp.GetErrno_())
 }
 
 // Recv calls recv on the DUT and causes a fatal test failure if it doesn't
@@ -751,7 +750,7 @@ func (dut *DUT) RecvWithErrno(ctx context.Context, t *testing.T, sockfd, len, fl
 	if err != nil {
 		t.Fatalf("failed to call Recv: %s", err)
 	}
-	return resp.GetRet(), resp.GetBuf(), syscall.Errno(resp.GetErrno_())
+	return resp.GetRet(), resp.GetBuf(), unix.Errno(resp.GetErrno_())
 }
 
 // SetSockLingerOption sets SO_LINGER socket option on the DUT.
@@ -791,5 +790,5 @@ func (dut *DUT) ShutdownWithErrno(ctx context.Context, t *testing.T, fd, how int
 	if err != nil {
 		t.Fatalf("failed to call Shutdown: %s", err)
 	}
-	return syscall.Errno(resp.GetErrno_())
+	return unix.Errno(resp.GetErrno_())
 }
